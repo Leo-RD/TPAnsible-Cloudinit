@@ -1,0 +1,13 @@
+#cloud-config
+disable_root: true
+ssh_pwauth: false
+
+# On empêche Cloud-init de chercher ou configurer l'utilisateur 'ubuntu' par défaut
+# Cela supprime le message d'erreur dans les logs que le prof a remarqué
+users:
+  - name: camarade
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+    ssh_authorized_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILlG65V8jJCMmXEFlNG09bovXyazLKVGFvENmAZiuiyv"

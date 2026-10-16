@@ -1,0 +1,67 @@
+---
+- name: Installer MySQL et importer la base DNS (PowerDNS)
+  hosts: dbservers
+  become: true
+
+  vars:
+    db_name: pdns
+    dump_src: files/dump.sql
+    dump_dest: /tmp/pdns_dump.sql
+
+  tasks:
+    - name: Installer MySQL Server et le connecteur Python
+      ansible.builtin.apt:
+        name:
+          - mysql-server
+          - python3-pymysql
+        state: present
+        update_cache: true
+
+    - name: Démarrer et activer MySQL
+      ansible.builtin.service:
+        name: mysql
+        state: started
+        enabled: true
+
+    - name: Copier le dump sur la VM
+      ansible.builtin.copy:
+        src: "{{ dump_src }}"
+        dest: "{{ dump_dest }}"
+        mode: "0644"
+
+    # Le dump vient de MySQL 4 : "TYPE=" n'existe plus, MySQL 8 attend "ENGINE="
+    - name: Adapter la syntaxe du dump à MySQL 8
+      ansible.builtin.replace:
+        path: "{{ dump_dest }}"
+        regexp: '\) TYPE='
+        replace: ') ENGINE='
+
+    - name: Créer la base de données
+      ansible.mysql.mysql_db:
+        name: "{{ db_name }}"
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+      register: db_created
+
+    # Import seulement à la création de la base, pour que le playbook reste idempotent
+    - name: Importer le dump
+      ansible.mysql.mysql_db:
+        name: "{{ db_name }}"
+        state: import
+        target: "{{ dump_dest }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+      when: db_created.changed
+
+    - name: Requête de vérification
+      ansible.mysql.mysql_query:
+        login_db: "{{ db_name }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        query: >
+          SELECT d.name AS domaine, r.name, r.type, r.content, r.ttl, r.prio
+          FROM records r JOIN domains d ON d.id = r.domain_id
+          ORDER BY r.id
+      register: result
+
+    - name: Afficher le résultat
+      ansible.builtin.debug:
+        var: result.query_result[0]

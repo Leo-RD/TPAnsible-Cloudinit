@@ -1,0 +1,25 @@
+vm-cloud | CHANGED | rc=0 >>
++----------------+
+| Tables_in_pdns |
++----------------+
+| domains        |
+| records        |
+| supermasters   |
++----------------+
++--------------+------------------------+-------+---------------------------------------+-------+------+
+| domaine      | name                   | type  | content                               | ttl   | prio |
++--------------+------------------------+-------+---------------------------------------+-------+------+
+| test.com     | test.com               | SOA   | localhost ahu@ds9a.nl 1               | 86400 | NULL |
+| test.com     | test.com               | NS    | dns-us1.powerdns.net                  | 86400 | NULL |
+| test.com     | test.com               | NS    | dns-eu1.powerdns.net                  | 86400 | NULL |
+| test.com     | www.test.com           | A     | 199.198.197.196                       |   120 | NULL |
+| test.com     | mail.test.com          | A     | 195.194.193.192                       |   120 | NULL |
+| test.com     | localhost.test.com     | A     | 127.0.0.1                             |   120 | NULL |
+| test.com     | test.com               | MX    | mail.test.com                         |   120 |   25 |
+| test.com     | test.com               | MX    | mx1.tuxfamily.net                     |   120 |   24 |
+| test.com     | cname.test.com         | CNAME | eloise.ouvaton.net                    |   120 | NULL |
+| ouvameuh.net | ouvameuh.net           | SOA   | localhost meuh@ouvaton.net 2005030901 |  3600 | NULL |
+| ouvameuh.net | ouvameuh.net           | NS    | localhost                             |  3600 | NULL |
+| ouvameuh.net | localhost.ouvameuh.net | A     | 127.0.0.1                             |  3600 | NULL |
+| ouvameuh.net | cname.ouvameuh.net     | CNAME | eloise.ouvaton.net                    |  3600 | NULL |
++--------------+------------------------+-------+---------------------------------------+-------+------+
