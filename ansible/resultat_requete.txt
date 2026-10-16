@@ -1,3 +1,7 @@
+commande utilisée
+
+ansible dbservers -b -m shell -a "mysql -t pdns -e 'SELECT * FROM domains;'" 
+
 vm-cloud | CHANGED | rc=0 >>
 +----------------+
 | Tables_in_pdns |
