@@ -33,5 +33,5 @@ qemu-system-aarch64 \
     -nographic \
     -drive "if=virtio,format=qcow2,file=$DISK_NAME" \
     -drive "if=virtio,format=raw,file=$SEED_ISO" \
-    -netdev user,id=net0,hostfwd=tcp::2222-:22 \
+    -netdev user,id=net0,hostfwd=tcp::2222-:22,hostfwd=tcp::8080-:8080 \
     -device virtio-net-pci,netdev=net0

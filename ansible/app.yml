@@ -1,0 +1,118 @@
+---
+# Le jar est compilé sur le poste de contrôle : la VM n'a besoin que d'un JRE
+- name: Compiler l'application Spring Boot
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    app_src_dir: /Users/leo/Desktop/DEMO-CB/java-ansible/demo
+
+  tasks:
+    # Tests sautés : le test de contexte a besoin d'une base MySQL joignable
+    - name: Construire le jar avec le wrapper Maven
+      ansible.builtin.command:
+        cmd: ./mvnw -q package -DskipTests
+        chdir: "{{ app_src_dir }}"
+
+- name: Déployer l'application et la connecter à MySQL
+  hosts: appservers
+  become: true
+
+  vars:
+    app_name: demo
+    app_dir: /opt/demo
+    app_port: 8080
+    app_jar_src: /Users/leo/Desktop/DEMO-CB/java-ansible/demo/target/demo-0.0.1-SNAPSHOT.jar
+    db_name: pdns
+    db_user: demo
+    db_password: Demo_Pdns_2026
+
+  tasks:
+    - name: Installer le JRE 17 (sans interface graphique)
+      ansible.builtin.apt:
+        name: openjdk-17-jre-headless
+        state: present
+        update_cache: true
+
+    # L'appli se connecte en TCP avec un mot de passe, pas par le socket root
+    - name: Créer l'utilisateur MySQL de l'application
+      ansible.mysql.mysql_user:
+        name: "{{ db_user }}"
+        host: localhost
+        password: "{{ db_password }}"
+        priv: "{{ db_name }}.*:SELECT,INSERT,UPDATE,DELETE"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+    - name: Créer l'utilisateur système de l'application
+      ansible.builtin.user:
+        name: "{{ app_name }}"
+        system: true
+        shell: /usr/sbin/nologin
+        create_home: false
+
+    - name: Créer le dossier de l'application
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: root
+        group: "{{ app_name }}"
+        mode: "0750"
+
+    - name: Copier le jar
+      ansible.builtin.copy:
+        src: "{{ app_jar_src }}"
+        dest: "{{ app_dir }}/{{ app_name }}.jar"
+        owner: root
+        group: "{{ app_name }}"
+        mode: "0640"
+      notify: Redémarrer l'application
+
+    # Contient le mot de passe : lisible seulement par root et le groupe de l'appli
+    - name: Générer la configuration de l'application
+      ansible.builtin.template:
+        src: templates/application.properties.j2
+        dest: "{{ app_dir }}/application.properties"
+        owner: root
+        group: "{{ app_name }}"
+        mode: "0640"
+      notify: Redémarrer l'application
+
+    - name: Installer le service systemd
+      ansible.builtin.template:
+        src: templates/demo.service.j2
+        dest: /etc/systemd/system/{{ app_name }}.service
+        mode: "0644"
+      notify: Redémarrer l'application
+
+    - name: Démarrer et activer l'application
+      ansible.builtin.systemd_service:
+        name: "{{ app_name }}"
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: Appliquer les redémarrages en attente
+      ansible.builtin.meta: flush_handlers
+
+    - name: Attendre que l'application écoute
+      ansible.builtin.wait_for:
+        port: "{{ app_port }}"
+        timeout: 120
+
+    - name: Interroger l'application
+      ansible.builtin.uri:
+        url: "http://localhost:{{ app_port }}/"
+        return_content: true
+      register: app_response
+
+    - name: Afficher la réponse
+      ansible.builtin.debug:
+        var: app_response.content
+
+  handlers:
+    - name: Redémarrer l'application
+      ansible.builtin.systemd_service:
+        name: "{{ app_name }}"
+        state: restarted
+        daemon_reload: true

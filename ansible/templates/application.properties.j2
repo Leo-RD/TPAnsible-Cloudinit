@@ -1,0 +1,10 @@
+# Généré par Ansible
+spring.application.name={{ app_name }}
+server.port={{ app_port }}
+
+spring.datasource.url=jdbc:mysql://localhost:3306/{{ db_name }}
+spring.datasource.username={{ db_user }}
+spring.datasource.password={{ db_password }}
+
+# Base pdns existante : Hibernate ne doit pas toucher au schéma
+spring.jpa.hibernate.ddl-auto=none

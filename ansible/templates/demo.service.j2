@@ -1,0 +1,16 @@
+[Unit]
+Description=Application Spring Boot {{ app_name }}
+After=network.target mysql.service
+Requires=mysql.service
+
+[Service]
+User={{ app_name }}
+Group={{ app_name }}
+WorkingDirectory={{ app_dir }}
+# Mémoire limitée : la VM (2 Go) héberge aussi MySQL
+ExecStart=/usr/bin/java -Xmx256m -jar {{ app_dir }}/{{ app_name }}.jar --spring.config.additional-location=file:{{ app_dir }}/application.properties
+SuccessExitStatus=143
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
